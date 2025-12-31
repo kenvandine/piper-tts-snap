@@ -1,0 +1,37 @@
+#!/bin/bash
+# Configure hook for piper-tts snap
+# Handles snap configuration changes via 'snap set piper-tts <key>=<value>'
+
+set -e
+
+# Get configuration values
+PORT=$(snapctl get port)
+VOICE=$(snapctl get voice)
+
+# Set defaults if not configured
+if [ -z "$PORT" ]; then
+    snapctl set port=10200
+    PORT=10200
+fi
+
+if [ -z "$VOICE" ]; then
+    snapctl set voice=en_US-lessac-medium
+    VOICE=en_US-lessac-medium
+fi
+
+# Validate port (must be a number between 1024 and 65535)
+if ! [[ "$PORT" =~ ^[0-9]+$ ]] || [ "$PORT" -lt 1024 ] || [ "$PORT" -gt 65535 ]; then
+    echo "Error: port must be a number between 1024 and 65535" >&2
+    exit 1
+fi
+
+# Validate voice (just check it's not empty and contains valid characters)
+if ! [[ "$VOICE" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    echo "Error: voice must contain only alphanumeric characters, hyphens, and underscores" >&2
+    exit 1
+fi
+
+# Log configuration changes
+logger -t piper-tts "Configuration updated: port=$PORT, voice=$VOICE"
+
+exit 0

@@ -4,10 +4,10 @@
 
 set -e
 
-# Configuration from environment or defaults
-PIPER_PORT="${PIPER_PORT:-10200}"
+# Get configuration from snap settings (set via 'snap set piper-tts port=X voice=Y')
+PIPER_PORT=$(snapctl get port 2>/dev/null || echo "10200")
+PIPER_VOICE=$(snapctl get voice 2>/dev/null || echo "en_US-lessac-medium")
 PIPER_DATA_DIR="${PIPER_DATA_DIR:-$SNAP_COMMON/data}"
-PIPER_VOICE="${PIPER_VOICE:-en_US-lessac-medium}"
 
 # Ensure data directory exists
 mkdir -p "$PIPER_DATA_DIR"
