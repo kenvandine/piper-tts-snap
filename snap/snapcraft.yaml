@@ -103,15 +103,40 @@ parts:
 
       echo "Found piper binary at: $PIPER_BIN"
 
-      # Install binaries
+      # Get the directory containing piper binary
+      PIPER_DIR=$(dirname "$PIPER_BIN")
+
+      echo "Piper directory: $PIPER_DIR"
+      echo "Contents of piper directory:"
+      ls -la "$PIPER_DIR"
+
+      # Install binaries and libraries
       mkdir -p ${CRAFT_PART_INSTALL}/bin
+      mkdir -p ${CRAFT_PART_INSTALL}/lib
+
+      # Copy the piper binary
       cp "$PIPER_BIN" ${CRAFT_PART_INSTALL}/bin/piper
+
+      # Copy all shared libraries
+      find "$PIPER_DIR" -name "*.so*" -type f -exec cp -v {} ${CRAFT_PART_INSTALL}/lib/ \;
+
+      # Also check in lib subdirectory if it exists
+      if [ -d "$PIPER_DIR/lib" ]; then
+        echo "Copying libraries from lib subdirectory:"
+        cp -v "$PIPER_DIR/lib"/*.so* ${CRAFT_PART_INSTALL}/lib/ 2>/dev/null || true
+      fi
 
       # Copy any JSON files
       find . -name "*.json" -type f -exec cp {} ${CRAFT_PART_INSTALL}/bin/ \; || true
 
       # Make executable
       chmod +x ${CRAFT_PART_INSTALL}/bin/piper
+
+      echo "Installed files:"
+      echo "Binaries:"
+      ls -la ${CRAFT_PART_INSTALL}/bin/
+      echo "Libraries:"
+      ls -la ${CRAFT_PART_INSTALL}/lib/ || echo "No libraries found"
 
       echo "Piper binary installed successfully"
       ${CRAFT_PART_INSTALL}/bin/piper --version || echo "Note: --version may not be supported"
