@@ -1,0 +1,33 @@
+#!/bin/bash
+# Piper TTS CLI Wrapper
+# Allows command-line text-to-speech conversion
+
+set -e
+
+PIPER_DATA_DIR="${PIPER_DATA_DIR:-$SNAP_COMMON/data}"
+PIPER_VOICE="${PIPER_VOICE:-en_US-lessac-medium}"
+
+# Ensure data directory exists
+mkdir -p "$PIPER_DATA_DIR"
+
+# Copy voice models if not present
+if [ ! -d "$PIPER_DATA_DIR/voices" ]; then
+    cp -r "$SNAP/voices" "$PIPER_DATA_DIR/"
+fi
+
+# Find the voice model
+VOICE_MODEL="$PIPER_DATA_DIR/voices/${PIPER_VOICE}.onnx"
+VOICE_CONFIG="$PIPER_DATA_DIR/voices/${PIPER_VOICE}.onnx.json"
+
+if [ ! -f "$VOICE_MODEL" ]; then
+    echo "ERROR: Voice model not found: $VOICE_MODEL" >&2
+    echo "Available voices:" >&2
+    ls -1 "$PIPER_DATA_DIR/voices/"*.onnx 2>/dev/null || echo "  (none found)" >&2
+    exit 1
+fi
+
+# Pass all arguments to piper, with model and config
+exec "$SNAP/bin/piper" \
+    --model "$VOICE_MODEL" \
+    --config "$VOICE_CONFIG" \
+    "$@"

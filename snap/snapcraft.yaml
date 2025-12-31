@@ -1,0 +1,155 @@
+name: piper-tts
+base: core24
+version: '1.2.0'
+summary: Fast, local neural text-to-speech server
+description: |
+  Piper is a fast, local neural text to speech system that sounds great and is
+  optimized for the Raspberry Pi 4. It uses onnxruntime and is around 95% realtime
+  on Pi 4.
+
+  This snap includes the Piper TTS engine and provides a Wyoming protocol server
+  for easy integration with Home Assistant and other systems.
+
+  Features:
+  - Fast, local TTS (no cloud required)
+  - Multiple voice models available
+  - Wyoming protocol support for Home Assistant
+  - TCP socket server for easy integration
+  - Low resource usage
+
+grade: stable
+confinement: strict
+
+platforms:
+  amd64:
+  arm64:
+
+apps:
+  piper:
+    command: bin/piper-launcher
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+    environment:
+      PIPER_DATA_DIR: $SNAP_COMMON/data
+      PIPER_VOICE: en_US-lessac-medium
+      PIPER_PORT: "10200"
+
+  piper-cli:
+    command: bin/piper-wrapper
+    plugs:
+      - network
+      - network-bind
+      - home
+    environment:
+      PIPER_DATA_DIR: $SNAP_COMMON/data
+
+parts:
+  piper-binary:
+    plugin: nil
+    build-packages:
+      - wget
+      - tar
+      - ca-certificates
+    override-build: |
+      set -x  # Enable debug output
+
+      # Determine architecture
+      ARCH=$(dpkg --print-architecture)
+
+      case $ARCH in
+        amd64)
+          PIPER_ARCH="amd64"
+          ;;
+        arm64)
+          PIPER_ARCH="arm64"
+          ;;
+        *)
+          echo "Unsupported architecture: $ARCH"
+          exit 1
+          ;;
+      esac
+
+      # Download Piper release
+      PIPER_VERSION="1.2.0"
+      PIPER_URL="https://github.com/rhasspy/piper/releases/download/v${PIPER_VERSION}/piper_${PIPER_ARCH}.tar.gz"
+
+      echo "Downloading Piper ${PIPER_VERSION} for ${PIPER_ARCH}..."
+      echo "URL: ${PIPER_URL}"
+
+      # Download with verbose output and retry
+      wget --show-progress --tries=3 --timeout=30 "${PIPER_URL}" -O piper.tar.gz || {
+        echo "ERROR: Failed to download Piper from ${PIPER_URL}"
+        exit 1
+      }
+
+      echo "Download complete, extracting..."
+      # Extract
+      tar -xzf piper.tar.gz
+
+      echo "Contents of extracted archive:"
+      ls -la
+
+      # Find piper binary
+      PIPER_BIN=$(find . -name "piper" -type f | head -n 1)
+
+      if [ -z "$PIPER_BIN" ]; then
+        echo "ERROR: piper binary not found in archive"
+        echo "Archive contents:"
+        tar -tzf piper.tar.gz
+        exit 1
+      fi
+
+      echo "Found piper binary at: $PIPER_BIN"
+
+      # Install binaries
+      mkdir -p ${CRAFT_PART_INSTALL}/bin
+      cp "$PIPER_BIN" ${CRAFT_PART_INSTALL}/bin/piper
+
+      # Copy any JSON files
+      find . -name "*.json" -type f -exec cp {} ${CRAFT_PART_INSTALL}/bin/ \; || true
+
+      # Make executable
+      chmod +x ${CRAFT_PART_INSTALL}/bin/piper
+
+      echo "Piper binary installed successfully"
+      ${CRAFT_PART_INSTALL}/bin/piper --version || echo "Note: --version may not be supported"
+
+  voice-model:
+    plugin: nil
+    build-packages:
+      - wget
+      - ca-certificates
+    override-build: |
+      set -x
+
+      # Download default voice model from Hugging Face
+      VOICE_BASE_URL="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium"
+      VOICE_URL="${VOICE_BASE_URL}/en_US-lessac-medium.onnx?download=true"
+      VOICE_JSON_URL="${VOICE_BASE_URL}/en_US-lessac-medium.onnx.json?download=true"
+
+      echo "Downloading default voice model..."
+      mkdir -p ${CRAFT_PART_INSTALL}/voices
+
+      # Download model file
+      echo "Downloading model: ${VOICE_URL}"
+      wget --show-progress --tries=3 "${VOICE_URL}" -O ${CRAFT_PART_INSTALL}/voices/en_US-lessac-medium.onnx
+
+      # Download config file
+      echo "Downloading config: ${VOICE_JSON_URL}"
+      wget --show-progress --tries=3 "${VOICE_JSON_URL}" -O ${CRAFT_PART_INSTALL}/voices/en_US-lessac-medium.onnx.json
+
+      echo "Voice model installed successfully"
+      ls -lh ${CRAFT_PART_INSTALL}/voices/
+
+  wrapper-scripts:
+    plugin: dump
+    source: snap/local/
+    organize:
+      'piper-launcher': bin/piper-launcher
+      'piper-wrapper': bin/piper-wrapper
+    override-stage: |
+      craftctl default
+      chmod 755 ${CRAFT_STAGE}/bin/piper-launcher
+      chmod 755 ${CRAFT_STAGE}/bin/piper-wrapper

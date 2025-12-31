@@ -1,0 +1,59 @@
+#!/bin/bash
+# Piper TTS Server Launcher
+# Simple TCP server that accepts text and returns WAV audio
+
+set -e
+
+# Configuration from environment or defaults
+PIPER_PORT="${PIPER_PORT:-10200}"
+PIPER_DATA_DIR="${PIPER_DATA_DIR:-$SNAP_COMMON/data}"
+PIPER_VOICE="${PIPER_VOICE:-en_US-lessac-medium}"
+
+# Ensure data directory exists
+mkdir -p "$PIPER_DATA_DIR"
+
+# Copy voice models to data directory if not present
+if [ ! -d "$PIPER_DATA_DIR/voices" ]; then
+    echo "Installing default voice model to $PIPER_DATA_DIR/voices"
+    cp -r "$SNAP/voices" "$PIPER_DATA_DIR/"
+fi
+
+# Find the voice model files
+VOICE_MODEL="$PIPER_DATA_DIR/voices/${PIPER_VOICE}.onnx"
+VOICE_CONFIG="$PIPER_DATA_DIR/voices/${PIPER_VOICE}.onnx.json"
+
+if [ ! -f "$VOICE_MODEL" ]; then
+    echo "ERROR: Voice model not found: $VOICE_MODEL"
+    echo "Available voices in $PIPER_DATA_DIR/voices:"
+    ls -1 "$PIPER_DATA_DIR/voices/"*.onnx 2>/dev/null || echo "  (none found)"
+    exit 1
+fi
+
+echo "========================================"
+echo "       Piper TTS Server"
+echo "========================================"
+echo "  Port: $PIPER_PORT"
+echo "  Voice: $PIPER_VOICE"
+echo "  Model: $VOICE_MODEL"
+echo "  Data Dir: $PIPER_DATA_DIR"
+echo "========================================"
+echo ""
+echo "Piper TTS Server listening on port $PIPER_PORT"
+echo "Send text via TCP to receive WAV audio"
+echo ""
+
+# Simple TCP server loop
+# For production, this should be replaced with a proper implementation
+# or use wyoming-piper package
+
+while true; do
+    # Listen on port, receive text, convert to speech, return WAV
+    nc -l -p "$PIPER_PORT" 2>/dev/null | \
+        "$SNAP/bin/piper" \
+            --model "$VOICE_MODEL" \
+            --config "$VOICE_CONFIG" \
+            --output-raw 2>&1 || true
+
+    # Small delay to prevent tight loop on errors
+    sleep 0.1
+done
