@@ -35,6 +35,7 @@ apps:
       PIPER_DATA_DIR: $SNAP_COMMON/data
       PIPER_VOICE: en_US-lessac-medium
       PIPER_PORT: "10200"
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pulseaudio:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$LD_LIBRARY_PATH
 
   piper-cli:
     command: bin/piper-wrapper
@@ -44,8 +45,14 @@ apps:
       - home
     environment:
       PIPER_DATA_DIR: $SNAP_COMMON/data
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pulseaudio:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$LD_LIBRARY_PATH
 
 parts:
+  deps:
+    plugin: nil
+    stage-packages:
+      - libespeak-ng1
+      - libpulse0
   piper-binary:
     plugin: nil
     build-packages:

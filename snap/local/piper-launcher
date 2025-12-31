@@ -4,9 +4,6 @@
 
 set -e
 
-# Set library path for shared libraries
-export LD_LIBRARY_PATH="$SNAP/lib:$LD_LIBRARY_PATH"
-
 # Configuration from environment or defaults
 PIPER_PORT="${PIPER_PORT:-10200}"
 PIPER_DATA_DIR="${PIPER_DATA_DIR:-$SNAP_COMMON/data}"
