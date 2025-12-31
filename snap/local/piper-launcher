@@ -42,17 +42,25 @@ echo "Piper TTS Server listening on 0.0.0.0:$PIPER_PORT"
 echo "Send text via TCP to receive WAV audio"
 echo ""
 
-# Simple TCP server loop
+# Simple TCP server loop using named pipe for bidirectional communication
 # For production, this should be replaced with a proper implementation
 # or use wyoming-piper package
 
+# Create named pipe for bidirectional communication
+FIFO="$SNAP_COMMON/piper_fifo_$$"
+mkfifo "$FIFO" 2>/dev/null || true
+
+# Cleanup on exit
+trap "rm -f $FIFO" EXIT
+
 while true; do
-    # Listen on all interfaces (0.0.0.0), receive text, convert to speech, return WAV
-    nc -l -s 0.0.0.0 -p "$PIPER_PORT" 2>/dev/null | \
+    # Listen on all interfaces, receive text, convert to speech, return WAV
+    # Using named pipe to send piper output back through netcat connection
+    cat "$FIFO" | nc -l -s 0.0.0.0 -p "$PIPER_PORT" 2>/dev/null | \
         "$SNAP/bin/piper" \
             --model "$VOICE_MODEL" \
             --config "$VOICE_CONFIG" \
-            --output-raw 2>&1 || true
+            --output_file - > "$FIFO" 2>/dev/null || true
 
     # Small delay to prevent tight loop on errors
     sleep 0.1
