@@ -27,6 +27,8 @@ platforms:
 layout:
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/espeak-ng-data:
     symlink: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/espeak-ng-data
+  /usr/share/espeak-ng-data:
+    symlink: $SNAP/usr/share/espeak-ng-data
 
 apps:
   piper:
@@ -60,11 +62,53 @@ apps:
       OMP_NUM_THREADS: "4"
 
 parts:
+  espeak-ng:
+    plugin: autotools
+    source: https://github.com/rhasspy/espeak-ng.git
+    source-tag: master
+    source-depth: 1
+    autotools-configure-parameters:
+      - --prefix=/usr
+      - --with-extdict-cmn
+    build-packages:
+      - make
+      - gcc
+      - g++
+      - automake
+      - autoconf
+      - libtool
+      - pkg-config
+      - libpcaudio-dev
+      - libsonic-dev
+    stage-packages:
+      - libpcaudio0
+      - libsonic0
+    override-build: |
+      ./autogen.sh
+      craftctl default
+      # Ensure symlinks exist in lib directory for easier access
+      mkdir -p ${CRAFT_PART_INSTALL}/lib
+      cp -P ${CRAFT_PART_INSTALL}/usr/lib/*/libespeak-ng.so* ${CRAFT_PART_INSTALL}/lib/ || true
+    override-stage: |
+      craftctl default
+      # Create symlink if it doesn't exist
+      if [ -e ${CRAFT_STAGE}/lib/libespeak-ng.so.1.1.51 ]; then
+        cd ${CRAFT_STAGE}/lib
+        ln -sf libespeak-ng.so.1.1.51 libespeak-ng.so.1
+        ln -sf libespeak-ng.so.1.1.51 libespeak-ng.so
+      fi
+    override-prime: |
+      craftctl default
+      # Ensure symlinks in prime as well
+      if [ -e ${CRAFT_PRIME}/lib/libespeak-ng.so.1.1.51 ]; then
+        cd ${CRAFT_PRIME}/lib
+        ln -sf libespeak-ng.so.1.1.51 libespeak-ng.so.1
+        ln -sf libespeak-ng.so.1.1.51 libespeak-ng.so
+      fi
+
   deps:
     plugin: nil
     stage-packages:
-      - libespeak-ng1
-      - espeak-ng-data
       - libpulse0
   piper-binary:
     plugin: nil
