@@ -35,13 +35,13 @@ fi
 echo "========================================"
 echo "       Piper TTS Server"
 echo "========================================"
-echo "  Port: $PIPER_PORT"
+echo "  Address: 0.0.0.0:$PIPER_PORT"
 echo "  Voice: $PIPER_VOICE"
 echo "  Model: $VOICE_MODEL"
 echo "  Data Dir: $PIPER_DATA_DIR"
 echo "========================================"
 echo ""
-echo "Piper TTS Server listening on port $PIPER_PORT"
+echo "Piper TTS Server listening on 0.0.0.0:$PIPER_PORT"
 echo "Send text via TCP to receive WAV audio"
 echo ""
 
@@ -50,8 +50,8 @@ echo ""
 # or use wyoming-piper package
 
 while true; do
-    # Listen on port, receive text, convert to speech, return WAV
-    nc -l -p "$PIPER_PORT" 2>/dev/null | \
+    # Listen on all interfaces (0.0.0.0), receive text, convert to speech, return WAV
+    nc -l -s 0.0.0.0 -p "$PIPER_PORT" 2>/dev/null | \
         "$SNAP/bin/piper" \
             --model "$VOICE_MODEL" \
             --config "$VOICE_CONFIG" \
