@@ -26,7 +26,7 @@ platforms:
 
 layout:
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/espeak-ng-data:
-    symlink: $SNAP/usr/share/espeak-ng-data
+    symlink: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/espeak-ng-data
 
 apps:
   piper:
