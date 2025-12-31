@@ -24,6 +24,10 @@ platforms:
   amd64:
   arm64:
 
+layout:
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/espeak-ng-data:
+    symlink: $SNAP/usr/share/espeak-ng-data
+
 apps:
   piper:
     command: bin/piper-launcher
@@ -36,6 +40,10 @@ apps:
       PIPER_VOICE: en_US-lessac-medium
       PIPER_PORT: "10200"
       LD_LIBRARY_PATH: $SNAP/lib:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pulseaudio:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$LD_LIBRARY_PATH
+      # Fix ONNX Runtime thread affinity errors
+      ORT_INTRA_OP_NUM_THREADS: "4"
+      ORT_INTER_OP_NUM_THREADS: "4"
+      OMP_NUM_THREADS: "4"
 
   piper-cli:
     command: bin/piper-wrapper
@@ -46,12 +54,17 @@ apps:
     environment:
       PIPER_DATA_DIR: $SNAP_COMMON/data
       LD_LIBRARY_PATH: $SNAP/lib:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pulseaudio:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$LD_LIBRARY_PATH
+      # Fix ONNX Runtime thread affinity errors
+      ORT_INTRA_OP_NUM_THREADS: "4"
+      ORT_INTER_OP_NUM_THREADS: "4"
+      OMP_NUM_THREADS: "4"
 
 parts:
   deps:
     plugin: nil
     stage-packages:
       - libespeak-ng1
+      - espeak-ng-data
       - libpulse0
   piper-binary:
     plugin: nil
